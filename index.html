@@ -145,39 +145,31 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// ========== Firebase 設定 ==========
-// ★ ここに自分のFirebaseプロジェクトの設定を貼り付けてください
 const firebaseConfig = {
   apiKey: "AIzaSyAAdJkCFihXuXxr15cbJpwg310TrY57Pcc",
   authDomain: "ion-learning.firebaseapp.com",
-  databaseURL: "https://ion-learning-default-rtdb.firebaseio.com",
+  databaseURL: "https://ion-learning-default-rtdb.asia-southeast1.firebasedatabase.app",
+  // ↑ Realtime Database の正しいリージョンURL
   projectId: "ion-learning",
   storageBucket: "ion-learning.firebasestorage.app",
   messagingSenderId: "793977279594",
   appId: "1:793977279594:web:3a6b3cb355a410109be613",
   measurementId: "G-SJKKMYY5QV"
 };
-// ====================================
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 
-// スコアを保存し、全スコアを取得して上位%を計算して返す
 window._fbSaveAndCalcRank = async function(score) {
-  // 保存
   await push(ref(db, 'scores'), { score, timestamp: Date.now() });
 
-  // 全スコア取得
   const snap = await get(ref(db, 'scores'));
   const allScores = [];
   snap.forEach(child => allScores.push(child.val().score));
 
   const total = allScores.length;
-  // 自分より低いスコアの数
   const below = allScores.filter(s => s < score).length;
-  // 上位%（小さいほど上位）
   const topPct = Math.max(1, Math.round(((total - below) / total) * 100));
-  // 上位10%に必要なスコア
   const sorted = [...allScores].sort((a, b) => b - a);
   const top10idx = Math.floor(total * 0.1);
   const top10score = sorted[top10idx] ?? sorted[0] ?? 0;
@@ -445,7 +437,13 @@ async function showResults(){
     }
     document.getElementById('rank-info').innerHTML = rankText;
   } catch(e) {
-    document.getElementById('rank-info').innerHTML='<small style="color:#888">※ スコア保存に失敗しました（Firebase未設定の可能性）</small>';
+    const msg = e.message || String(e);
+    const hint = msg.includes('PERMISSION_DENIED')
+      ? 'Firebaseのセキュリティルールで書き込みが拒否されています。コンソールでルールを確認してください。'
+      : msg.includes('different region') || msg.includes('firebaseio')
+      ? 'databaseURLのリージョンが違います。'
+      : msg;
+    document.getElementById('rank-info').innerHTML=`<small style="color:#c00">エラー: ${hint}</small>`;
     console.error(e);
   }
 
