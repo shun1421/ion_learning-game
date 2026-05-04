@@ -130,9 +130,8 @@ firebase.initializeApp({
 const db = firebase.database();
 
 async function fbSaveAndCalcRank(score) {
-  const newRef = await db.ref('scores').push({ score, timestamp: Date.now() });
-  console.log('[Firebase] push完了, key:', newRef.key);
-  const snap = await db.ref('scores').get();
+  await db.ref('scores').push({ score, timestamp: Date.now() });
+  const snap = await db.ref('scores').once('value');
   const allScores = [];
   snap.forEach(child => allScores.push(child.val().score));
   console.log('[Firebase] 取得件数:', allScores.length, '全スコア:', allScores);
