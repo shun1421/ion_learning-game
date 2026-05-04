@@ -147,15 +147,16 @@ import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/
 
 // ========== Firebase 設定 ==========
 // ★ ここに自分のFirebaseプロジェクトの設定を貼り付けてください
- const firebaseConfig = {
-    apiKey: "AIzaSyAAdJkCFihXuXxr15cbJpwg310TrY57Pcc",
-    authDomain: "ion-learning.firebaseapp.com",
-    projectId: "ion-learning",
-    storageBucket: "ion-learning.firebasestorage.app",
-    messagingSenderId: "793977279594",
-    appId: "1:793977279594:web:3a6b3cb355a410109be613",
-    measurementId: "G-SJKKMYY5QV"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyAAdJkCFihXuXxr15cbJpwg310TrY57Pcc",
+  authDomain: "ion-learning.firebaseapp.com",
+  databaseURL: "https://ion-learning-default-rtdb.firebaseio.com",
+  projectId: "ion-learning",
+  storageBucket: "ion-learning.firebasestorage.app",
+  messagingSenderId: "793977279594",
+  appId: "1:793977279594:web:3a6b3cb355a410109be613",
+  measurementId: "G-SJKKMYY5QV"
+};
 // ====================================
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -209,6 +210,7 @@ const IONS = [
   {name:'臭化物イオン', formula:'Br', charge:1, type:'anion'},
   {name:'ヨウ化物イオン', formula:'I', charge:1, type:'anion'},
   {name:'水酸化物イオン', formula:'OH', charge:1, type:'anion'},
+  {name:'酢酸イオン', formula:'CH3COO', charge:1, type:'anion'},
   {name:'硝酸イオン', formula:'NO3', charge:1, type:'anion'},
   {name:'酸化物イオン', formula:'O', charge:2, type:'anion'},
   {name:'硫化物イオン', formula:'S', charge:2, type:'anion'},
@@ -245,8 +247,6 @@ const CRYSTALS = [
   {name:'硝酸銀', cation:{formula:'Ag',charge:1,display:'Ag<sup>+</sup>',name:'銀イオン'}, anion:{formula:'NO3',charge:1,display:'NO<sub>3</sub><sup>−</sup>',name:'硝酸イオン'}, cn:1, an:1},
   {name:'リン酸カルシウム', cation:{formula:'Ca',charge:2,display:'Ca<sup>2+</sup>',name:'カルシウムイオン'}, anion:{formula:'PO4',charge:3,display:'PO<sub>4</sub><sup>3−</sup>',name:'リン酸イオン'}, cn:3, an:2},
 ];
-// 酢酸ナトリウムのcationキー誤字修正
-CRYSTALS[23].cation = {formula:'Na',charge:1,display:'Na<sup>+</sup>',name:'ナトリウムイオン'};
 
 // ===== ユーティリティ =====
 function toHtmlFormula(plain) { return plain.replace(/(\d+)/g,'<sub>$1</sub>'); }
@@ -254,12 +254,15 @@ function fmtCharge(c, type) { const s=type==='cation'?'+':'−'; return c===1?s:
 function ionChoiceHTML(ion,charge,type){ return `${toHtmlFormula(ion.formula)}<sup>${fmtCharge(charge,type)}</sup>`; }
 function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
+// 多原子イオン判定：大文字が2つ以上 → 複数元素からなる多原子イオン
+function isPolyatomic(formula){ return (formula.match(/[A-Z]/g)||[]).length >= 2; }
+
 function buildCrystalHTML(q,c,a){
   if(c===0&&a===0) return '?';
   const cf=q.crystal.cation.formula, af=q.crystal.anion.formula;
-  // 多原子イオン（2文字以上）かつ個数2以上なら括弧が必要
-  const needBracketC = c>1 && cf.length>1;
-  const needBracketA = a>1 && af.length>1;
+  // 多原子イオンかつ個数2以上のときだけ括弧
+  const needBracketC = c>1 && isPolyatomic(cf);
+  const needBracketA = a>1 && isPolyatomic(af);
   let h='';
   if(c>0){
     const ch=toHtmlFormula(cf);
