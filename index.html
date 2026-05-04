@@ -140,35 +140,32 @@
 
 </div>
 
-<!-- Firebase SDKs -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+<!-- Firebase SDKs (通常のscriptタグでUMD版を読み込む) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
+<script>
+// ===== Firebase 初期化 =====
 const firebaseConfig = {
   apiKey: "AIzaSyAAdJkCFihXuXxr15cbJpwg310TrY57Pcc",
   authDomain: "ion-learning.firebaseapp.com",
   databaseURL: "https://ion-learning-default-rtdb.asia-southeast1.firebasedatabase.app",
-  // ↑ Realtime Database の正しいリージョンURL
   projectId: "ion-learning",
   storageBucket: "ion-learning.firebasestorage.app",
   messagingSenderId: "793977279594",
   appId: "1:793977279594:web:3a6b3cb355a410109be613",
   measurementId: "G-SJKKMYY5QV"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp);
-
-window._fbSaveAndCalcRank = async function(score) {
-  // 保存
-  const newRef = await push(ref(db, 'scores'), { score, timestamp: Date.now() });
+async function fbSaveAndCalcRank(score) {
+  const newRef = await db.ref('scores').push({ score, timestamp: Date.now() });
   console.log('[Firebase] push完了, key:', newRef.key);
 
-  // 少し待ってから取得（書き込み反映を待つ）
   await new Promise(r => setTimeout(r, 500));
 
-  const snap = await get(ref(db, 'scores'));
+  const snap = await db.ref('scores').get();
   const allScores = [];
   snap.forEach(child => allScores.push(child.val().score));
   console.log('[Firebase] 取得件数:', allScores.length, '全スコア:', allScores);
@@ -181,8 +178,7 @@ window._fbSaveAndCalcRank = async function(score) {
   const top10score = sorted[top10idx] ?? sorted[0] ?? 0;
 
   return { topPct, top10score, total };
-};
-</script>
+}
 
 <script>
 // ===== データ =====
@@ -433,7 +429,7 @@ async function showResults(){
   // Firebase保存 & 上位%計算
   document.getElementById('rank-info').innerHTML='<small style="color:#aaa">集計中...</small>';
   try {
-    const { topPct, top10score, total } = await window._fbSaveAndCalcRank(score);
+    const { topPct, top10score, total } = await fbSaveAndCalcRank(score);
     let rankText = `<span class="rank-pct">上位 ${topPct}%</span> の成績`;
     rankText += `<br><small>（全 ${total} 件中）</small>`;
     if(score < top10score){
