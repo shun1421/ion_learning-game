@@ -161,11 +161,17 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 
 window._fbSaveAndCalcRank = async function(score) {
-  await push(ref(db, 'scores'), { score, timestamp: Date.now() });
+  // 保存
+  const newRef = await push(ref(db, 'scores'), { score, timestamp: Date.now() });
+  console.log('[Firebase] push完了, key:', newRef.key);
+
+  // 少し待ってから取得（書き込み反映を待つ）
+  await new Promise(r => setTimeout(r, 500));
 
   const snap = await get(ref(db, 'scores'));
   const allScores = [];
   snap.forEach(child => allScores.push(child.val().score));
+  console.log('[Firebase] 取得件数:', allScores.length, '全スコア:', allScores);
 
   const total = allScores.length;
   const below = allScores.filter(s => s < score).length;
